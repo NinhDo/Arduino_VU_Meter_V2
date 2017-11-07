@@ -202,6 +202,6 @@ void equalizerSetPixel(uint8_t band, uint16_t value) {
 
 void switchMode() {
   mode = (mode + 1) % 3;
-  EEPROM.write(MODE_ADDRESS, mode);
+  EEPROM.put(MODE_ADDRESS, mode);
 }
 
