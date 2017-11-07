@@ -1,4 +1,5 @@
 #include <Adafruit_NeoPixel.h>
+#include <EEPROM.h>
 
 #define LEDPIN 6  // The datapin for the LED rings
 
@@ -7,6 +8,8 @@
 #define EQUALIZER 1
 #define BREATHE 2
 #define NUMMODES 3
+
+const int MODE_ADDRESS = 0;      // The address where we store the mode. Don't really need to store the mode, but what the heck, why not?
 
 // General LED ring info
 const uint8_t NUMPIXELS = 60;    // Total  number of pixels
@@ -58,8 +61,11 @@ void setup() {
     analogRead(AUDIO_PINS[i]);                                      // Read analog pin to clear data
     audioVals[i] = 0;                                               // Initialize the audioVals array
   }
-  Serial.begin(9600);
-  for (uint8_t n = 0; n < AUDIO_SIZE; n++) {
+  
+// Serial.begin(9600);                                              // Uncomment for debugging
+  mode = EEPROM.read(MODE_ADDRESS);
+  
+  for (uint8_t n = 0; n < AUDIO_SIZE; n++) {                        // Initialize bands[][]
     for (uint8_t i = 0; i < 2; i++) {
       bands[n][i] = INNER_START + i + n * 2;
     }
@@ -196,5 +202,6 @@ void equalizerSetPixel(uint8_t band, uint16_t value) {
 
 void switchMode() {
   mode = (mode + 1) % 3;
+  EEPROM.write(MODE_ADDRESS, mode);
 }
 
