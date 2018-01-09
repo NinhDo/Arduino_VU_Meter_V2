@@ -7,7 +7,8 @@
 #define SPIRAL 0
 #define EQUALIZER 1
 #define BREATHE 2
-#define NUMMODES 3
+#define RAINBOW 3
+#define NUMMODES 4
 
 const int MODE_ADDRESS = 0;      // The address where we store the mode. Don't really need to store the mode, but what the heck, why not?
 
@@ -24,48 +25,48 @@ const uint8_t INNER_END = 60;    // When the inner ring ends 0 1 (for looping)
 // Neopixels are really bright, so you should keep these low unless you want a rave party
 // Green Light
 const uint8_t GREEN_R = 0;
-const uint8_t GREEN_G = 255;
+const uint8_t GREEN_G = 50;
 const uint8_t GREEN_B = 0;
 
 // Yellow Light
-const uint8_t YELLOW_R = 255;
-const uint8_t YELLOW_G = 200;
+const uint8_t YELLOW_R = 50;
+const uint8_t YELLOW_G = 25;
 const uint8_t YELLOW_B = 0;
 
 // Orange Light
-const uint8_t ORANGE_R = 255;
-const uint8_t ORANGE_G = 100;
+const uint8_t ORANGE_R = 50;
+const uint8_t ORANGE_G = 10;
 const uint8_t ORANGE_B = 0;
 
 // Red Light
-const uint8_t RED_R = 255;
+const uint8_t RED_R = 50;
 const uint8_t RED_G = 0;
 const uint8_t RED_B = 0;
 
 // The LED Rings, connected in series
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN);
 
-const uint8_t AUDIO_SIZE = 6;                                       // The number of filters we have. Change if needed
+const uint8_t AUDIO_SIZE = 6;   // The number of filters we have. Change if needed
 const uint8_t AUDIO_PINS[AUDIO_SIZE] = { A0, A1, A2, A3, A4, A5 };  // The pins. Add or remove if needed.
-int16_t audioVals[AUDIO_SIZE];             
+int16_t audioVals[AUDIO_SIZE];
 
-uint8_t bands[6][10];                                               // 6 bands, each with 10 LEDs (I have 60 total). Change it to match your setup
+uint8_t bands[6][10];   // 6 bands, each with 10 LEDs (I have 60 total). Change it to match your setup
 
-const uint8_t SAMPLE_TIMES = 5;                                     // To amplify the audio signal by reading multiple times. Change if needed
+const uint8_t SAMPLE_TIMES = 1;   // To amplify the audio signal by reading multiple times. Change if needed
 
-uint8_t mode = EQUALIZER;                                           // The display mode.
+uint8_t mode = EQUALIZER;   // The display mode.
 
 void setup() {
-  analogReference(INTERNAL);                                        // The voltage from the audio is only a couple of millivolts, so INTERNAL is needed
+//  analogReference(INTERNAL);    // The voltage from the audio is only a couple of millivolts, so INTERNAL is needed
   for (uint8_t i = 0; i < AUDIO_SIZE; i++) {
-    analogRead(AUDIO_PINS[i]);                                      // Read analog pin to clear data
-    audioVals[i] = 0;                                               // Initialize the audioVals array
+    analogRead(AUDIO_PINS[i]);    // Read analog pin to clear data
+    audioVals[i] = 0;   // Initialize the audioVals array
   }
   
-// Serial.begin(9600);                                              // Uncomment for debugging
+// Serial.begin(9600);    // Uncomment for debugging
   mode = EEPROM.read(MODE_ADDRESS);
   
-  for (uint8_t n = 0; n < AUDIO_SIZE; n++) {                        // Initialize bands[][]
+  for (uint8_t n = 0; n < AUDIO_SIZE; n++) {    // Initialize bands[][]
     for (uint8_t i = 0; i < 2; i++) {
       bands[n][i] = INNER_START + i + n * 2;
     }
@@ -97,20 +98,27 @@ void loop() {
     case EQUALIZER:
       equalizer();
       break;
-    default:
+    case BREATHE:
       breathe();
+      break;
+    case RAINBOW:
+      rainbow();
+      break;
+    default:
+      equalizer();
   }
 }
 
 void spiral() {
+  uint8_t color = 50;
   for(int8_t n = 0; n < 2; n++) {
     for(int8_t i = 59; i > 0; i-=2) {
-      pixels.setPixelColor(i, 100 * n, 100 * n, 100 * n);
+      pixels.setPixelColor(i, color * n, color * n, color * n);
       pixels.show();
       delay(10);
     }
     for(uint8_t i = 0; i < NUMPIXELS; i+=2) {
-      pixels.setPixelColor(i, 100 * n, 100 * n, 100 * n);
+      pixels.setPixelColor(i, color * n, color * n, color * n);
       pixels.show();
       delay(10);
     } 
@@ -118,11 +126,35 @@ void spiral() {
 }
 
 void breathe() {
-  uint8_t b_red = 255;
+  uint8_t red = 0;
+  uint8_t green = 50;
+  uint8_t blue = 50;
+  for(uint8_t n = 0; n < 50; n++) {
+    green--;
+    blue--;
+      for(uint8_t i = 0; i < NUMPIXELS; i++) {
+        pixels.setPixelColor(i, red, green, blue);
+      }
+    pixels.show();
+    delay(10);
+  }
+  for(uint8_t n = 0; n < 50; n++) {
+    green++;
+    blue++;
+      for(uint8_t i = 0; i < NUMPIXELS; i++) {
+        pixels.setPixelColor(i, red, green, blue);
+      }
+    pixels.show();
+    delay(10);
+  }
+}
+
+void rainbow() {
+  uint8_t b_red = 50;
   uint8_t b_green = 0;
   uint8_t b_blue = 0;
   for(uint8_t x = 0; x < 6; x++) {
-    for(uint8_t n = 0; n < 255; n++) {
+    for(uint8_t n = 0; n < 50; n++) {
       for(uint8_t i = 0; i < NUMPIXELS; i++) {
         pixels.setPixelColor(i, b_red, b_green, b_blue);
       }
@@ -201,7 +233,7 @@ void equalizerSetPixel(uint8_t band, uint16_t value) {
 }
 
 void switchMode() {
-  mode = (mode + 1) % 3;
+  mode = (mode + 1) % NUMMODES;
   EEPROM.put(MODE_ADDRESS, mode);
 }
 
